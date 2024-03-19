@@ -28,59 +28,75 @@ import QtMultimedia
 WallpaperItem {
     anchors.fill: parent
     id: main
+    property string videoWallpaperBackgroundVideo: wallpaper.configuration.VideoWallpaperBackgroundVideo
+    property bool playing: windowModel.playVideoWallpaper
+    property bool isLoading: true
+    onPlayingChanged: playing && !isLoading ? main.play() : main.pause()
+    onVideoWallpaperBackgroundVideoChanged: {
+        if (isLoading) return
+        updateState()
+
+    }
+
+    WindowModel {
+        id: windowModel
+        screenGeometry: main.parent.screenGeometry
+    }
 
     Rectangle {
         id: background
         anchors.fill: parent
         color: wallpaper.configuration.BackgroundColor
-        property string videoWallpaperBackgroundVideo: wallpaper.configuration.VideoWallpaperBackgroundVideo
-        property bool playing: windowModel.playVideoWallpaper
-        onPlayingChanged: background.playing ? playlistplayer.play() : playlistplayer.pause()
 
-        onVideoWallpaperBackgroundVideoChanged: {
-            if (playing) {
-                playlistplayer.play()
-            } else {
-                playlistplayer.play()
-                playlistplayer.pause()
-            }
-        }
-        
-
-        WindowModel {
-            id: windowModel
-            screenGeometry: main.parent.screenGeometry
-        }
-
-        MediaPlayer {
-            id: playlistplayer
-            activeAudioTrack: -1 //muted: wallpaper.configuration.MuteAudio
+        Video {
+            id: player
             source: wallpaper.configuration.VideoWallpaperBackgroundVideo
-            videoOutput: videoView
             loops: MediaPlayer.Infinite
-        }
-
-        VideoOutput {
-            id: videoView
             fillMode: wallpaper.configuration.FillMode
             anchors.fill: parent
+            volume: wallpaper.configuration.MuteAudio ? 0.0 : 1
         }
     }
 
-    function dumpProps(obj) {
-        console.error("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
-        for (var k of Object.keys(obj)) {
-            print(k + "=" + obj[k]+"\n")
+    function play(){
+        pauseTimer.stop();
+        player.play();
+    }
+    function pause(){
+        pauseTimer.start();
+    }
+
+    function updateState() {
+        if (playing) {
+            main.pause()
+            main.play()
+        } else {
+            main.play()
+            main.pause()
         }
     }
 
-    // Timer {
-    //     id: debugTimer
-    //     interval: 1000
-    //     repeat: true
-    //     running: true
-    //     onTriggered: {
-    //         // 
-    //     }
-    // }
+    Timer {
+        id: pauseTimer
+        interval: 300
+        onTriggered: {
+            player.pause()
+        }
+    }
+
+    Timer {
+        id: startTimer
+        running: true
+        repeat: false
+        interval: 3000
+        onTriggered: {
+            console.log(main.parent.screenGeometry);
+            isLoading = false
+            updateState()
+        }
+    }
+
+    Component.onCompleted: {
+        startTimer.start()
+    }
 }

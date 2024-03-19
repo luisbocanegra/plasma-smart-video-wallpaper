@@ -18,22 +18,17 @@
       <label>Video fill mode</label>
       <default>2</default>
     </entry>
-    <entry name="checkedSmartPlay" type="Bool">
-      <label>Pause the video when existing a maximized or full-screen windows.</label>
-      <default>false</default>
-    </entry>
-    <entry name="checkedBusyPlay" type="Bool">
-      <label>Pause the video when the desktop is busy.</label>
-      <default>true</default>
-    </entry>
-    <entry name="overridePause" type="Bool">
-      <label>If turned on, videos will play regardless of above pause options.</label>
-      <default>true</default>
+    <!-- Video pause mode
+        0: when the desktop is busy
+        1: when existing a maximized or full-screen windows
+        2: never
+    -->
+    <entry name="PauseMode" type="Int">
+      <default>0</default>
     </entry>
     <entry name="MuteAudio" type="Bool">
       <label>Mute audio</label>
       <default>true</default>
     </entry>
   </group>
-
 </kcfg>

@@ -18,56 +18,50 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  2.010-1301, USA.
  */
 
-import QtQuick 2.7
+import QtQuick
 import QtQuick.Controls
+import org.kde.kquickcontrols as KQuickControls
 import QtQuick.Dialogs
 import QtQuick.Layouts
 import QtMultimedia
 import org.kde.kirigami as Kirigami
 import org.kde.kquickcontrols 2.0 as KQuickControls
-
 import org.kde.plasma.core 2.0 as PlasmaCore
+import org.kde.kirigami as Kirigami
+import org.kde.kcmutils as KCM
 
-Item {
+
+Kirigami.FormLayout {
     id: root
-    property string cfg_VideoWallpaperBackgroundVideo
+    twinFormLayouts: parentLayout
+    property alias formLayout: root
+
+    property alias cfg_VideoWallpaperBackgroundVideo: videoPathLine.text
     property int  cfg_FillMode: 2
-    property bool cfg_MuteAudio:    true
+    property bool cfg_MuteAudio: true
     property bool cfg_DoublePlayer: true
 
-    property alias cfg_checkedSmartPlay: checkedSmartPlay.checked
-    property alias cfg_checkedBusyPlay:  checkedBusyPlay.checked
-    property alias cfg_overridePause: overridePause.checked
+    property int cfg_PauseMode: wallpaper.configuration.PauseMode
     property alias cfg_BackgroundColor: colorButton.color
 
     RowLayout {
-        id: videoPath
-        anchors.top: parent.top
-        anchors.horizontalCenter: parent.horizontalCenter
         Layout.fillWidth:true
-
-        Label {
-            text: "Video path: "
-        }
+        Kirigami.FormData.label: i18nd("@label:video_file", "Video path:")
         TextField {
             id: videoPathLine
             Layout.fillWidth:true
-            Layout.maximumWidth: previewArea.width - 150
-            Layout.minimumWidth: previewArea.width * 0.5
-            placeholderText: "Video"
+            placeholderText: i18nd("@text:placeholder_video_file", "/media/videos/waves.mp4")
             text: cfg_VideoWallpaperBackgroundVideo
-            readOnly : true
+            // readOnly : true
         }
-
         Button {
             id: imageButton
-            implicitWidth: height
             Kirigami.Icon {
                 anchors.fill: parent
                 source: "folder-videos-symbolic"
                 PlasmaCore.ToolTipArea {
                     anchors.fill: parent
-                    subText: "Pick video"
+                    subText: i18nd("@tooltip","Pick video")
                 }
             }
             MouseArea {
@@ -77,179 +71,95 @@ Item {
         }
     }
 
-    RowLayout {
-        id: fillModeRow
-        anchors.top: videoPath.bottom
-        anchors.topMargin: 2
-        anchors.horizontalCenter: parent.horizontalCenter
+    ComboBox {
+        Kirigami.FormData.label: i18nd("@option:video_fill_mode", "Fill mode:")
+        id: videoFillMode
+        model: [
+            {
+                'label': i18nd("@option:video_stretch", "Stretch"),
+                'fillMode': VideoOutput.Stretch
+            },
+            {
+                'label': i18nd("@option:video_scaled", "Scaled, Keep Proportions"),
+                'fillMode': VideoOutput.PreserveAspectFit
+            },
+            {
+                'label': i18nd("@option:video_scaled_cropped", "Scaled and Cropped"),
+                'fillMode': VideoOutput.PreserveAspectCrop
+            }
+        ]
+        textRole: "label"
+        onCurrentIndexChanged: cfg_FillMode = model[currentIndex]["fillMode"]
+        Component.onCompleted: setMethod();
 
-        Label {
-            text: "Video fill mode: "
-            Layout.alignment: Qt.AlignLeft
-        }
-        ComboBox {
-            id: videoFillMode
-            model: [
-                {
-                    'label': "Stretch",
-                    'fillMode': VideoOutput.Stretch
-                },
-                {
-                    'label': "Scaled, Keep Proportions",
-                    'fillMode': VideoOutput.PreserveAspectFit
-                },
-                {
-                    'label': "Scaled and Cropped",
-                    'fillMode': VideoOutput.PreserveAspectCrop
-                }
-            ]
-            textRole: "label"
-            onCurrentIndexChanged: cfg_FillMode = model[currentIndex]["fillMode"]
-            Component.onCompleted: setMethod();
-
-            function setMethod() {
-                for (var i = 0; i < model.length; i++) {
-                    if (model[i]["fillMode"] == wallpaper.configuration.FillMode) {
-                        videoFillMode.currentIndex = i;
-                    }
+        function setMethod() {
+            for (var i = 0; i < model.length; i++) {
+                if (model[i]["fillMode"] == wallpaper.configuration.FillMode) {
+                    videoFillMode.currentIndex = i;
                 }
             }
-        }
-        Label {
-            text: "Background Color: "
-            Layout.alignment: Qt.AlignLeft
-        }
-
-        KQuickControls.ColorButton {
-            id: colorButton
-            Kirigami.FormData.label: i18nd("plasma_wallpaper_org.kde.color", "Color:")
-            dialogTitle: i18nd("plasma_wallpaper_org.kde.color", "Select Background Color")
         }
     }
 
-    ColumnLayout {
-        id: selectPlayRow
-        anchors.top: fillModeRow.bottom
-        anchors.topMargin: 2
-        anchors.horizontalCenter: parent.horizontalCenter
-        Row{
-            Rectangle{
-                width: 400;
-                height: 1
-                color: "#aaaaaa"
-            }
-        }
-        Row{
-            spacing: Kirigami.Units.smallSpacing
-            RadioButton {
-                id: checkedSmartPlay
-                text: i18n("Pause the video when existing a maximized or full-screen windows.")
-                checked: true
-                onCheckedChanged: {
-                    checkedBusyPlay.checked = !checkedSmartPlay.checked
-                }
-            }
-        }
-        Row{
-            RadioButton {
-                id: checkedBusyPlay
-                checked: !checkedSmartPlay.checked
-                text: i18n("Pause the video when the desktop is busy.")
-                onCheckedChanged: {
-                    checkedSmartPlay.checked = !checkedBusyPlay.checked
-                }
-            }
-        }
-        Row{
-            CheckBox {
-                id: overridePause
-                text: "Always Play mode! Disables above pause features."
-                checked: true
-                onCheckedChanged: {
-                //    this.text = cfg_overridePause
-                }
-            }
-        }
-        Row{
-            Rectangle{
-                width: 400;
-                height: 1
-                color: "#aaaaaa"
-            }
-        }
-
+    KQuickControls.ColorButton {
+        id: colorButton
+        Kirigami.FormData.label: i18nd("@button:background_color", "Background:")
+        visible: cfg_FillMode === VideoOutput.PreserveAspectFit
+        dialogTitle: i18nd("@dialog:background_color_title", "Select Background Color")
     }
-    RowLayout {
-        id: radioRow
-        anchors.top: selectPlayRow.bottom
-        anchors.topMargin: 2
-        anchors.horizontalCenter: parent.horizontalCenter
 
-        CheckBox {
-            id: muteRadio
-            text: "Mute audio"
-            checked: cfg_MuteAudio
-            onCheckedChanged: {
-                if (checked) {
-                    cfg_MuteAudio = true
-                } else {
-                    cfg_MuteAudio = false
-                }
-            }
-        }
-        Button {
-            id: readmeButton
-            text: "Read me"
 
-            onClicked: {
-                var component = Qt.createComponent("ReadMe.qml")
-                var window    = component.createObject(root)
-                window.show()
+    RadioButton {
+        id: maximizedPauseRadioButtton
+        Kirigami.FormData.label: i18nd("@buttonGroup:pause_mode", "Pause video:")
+        text: i18n("When there are maximized or full-screen windows.")
+        ButtonGroup.group: pauseModeGroup
+        property int index: 0
+        checked: wallpaper.configuration.PauseMode === index
+    }
+    RadioButton {
+        id: busyPauseRadioButton
+        text: i18n("When the desktop is busy.")
+        ButtonGroup.group: pauseModeGroup
+        property int index: 1
+        checked: wallpaper.configuration.PauseMode === index
+    }
+    RadioButton {
+        id: neverPauseRadioButton
+        text: i18n("Never")
+        ButtonGroup.group: pauseModeGroup
+        property int index: 2
+        checked: wallpaper.configuration.PauseMode === index
+    }
+    ButtonGroup {
+        id: pauseModeGroup
+        onCheckedButtonChanged: {
+            if (checkedButton) {
+                cfg_PauseMode = checkedButton.index
             }
-        }
-        Label {
-            text: "Not use for the lock screen!"
-            Layout.alignment: Qt.AlignLeft
-            color: "#ff0000"
         }
     }
 
-    Rectangle {
-        id: previewArea
-        width: parent.width
-        height: width / 1.778
-        anchors.top: radioRow.bottom
-        //anchors.bottom: parent.bottom
-        color: "transparent"
-        border.color: "lightgray"
-        border.width: 2
-        Loader {
-            id: videoPreviewLoader
-            anchors.fill: parent
-        }
-    }
-
-    ColorDialog {
-        id: colorDialog
-        title: "Select Background Color"
-        onAccepted: {
-            cfg_BackgroundColor = colorDialog.color
+    CheckBox {
+        id: muteRadio
+        Kirigami.FormData.label: i18nd("@checkbox:mute_audio", "Mute audio:")
+        checked: cfg_MuteAudio
+        onCheckedChanged: {
+            if (checked) {
+                cfg_MuteAudio = true
+            } else {
+                cfg_MuteAudio = false
+            }
         }
     }
 
     FileDialog {
         id: fileDialog
         fileMode : FileDialog.OpenFile
-        title: "Pick a video file"
+        title: i18nd("@dialog_title:pick_video", "Pick a video file")
         nameFilters: [ "Video files (*.mp4 *.mpg *.ogg *.mov *.webm *.flv *.matroska *.avi *wmv)", "All files (*)" ]
         onAccepted: {
             cfg_VideoWallpaperBackgroundVideo = fileDialog.selectedFile
-            videoPreviewLoader.source = "QuickPreview.qml"
         }
-    }
-
-    onCfg_VideoWallpaperBackgroundVideoChanged: {
-        videoPathLine.text = cfg_VideoWallpaperBackgroundVideo
-        videoPreviewLoader.source = "QuickPreview.qml"
     }
 }

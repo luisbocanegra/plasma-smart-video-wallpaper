@@ -35,8 +35,7 @@ Item {
     property bool playVideoWallpaper: true
     property bool currentWindowMaximized: false
     property bool isActiveWindowPinned: false
-    property bool modePlay: wallpaper.configuration.checkedBusyPlay
-    property bool overridePauseEnabled: wallpaper.configuration.overridePause
+    property int pauseMode: wallpaper.configuration.PauseMode
 
     TaskManager.VirtualDesktopInfo { id: virtualDesktopInfo }
     TaskManager.ActivityInfo { id: activityInfo }
@@ -53,8 +52,8 @@ Item {
         filterByVirtualDesktop: true
         filterByScreen: true
 
-        onActiveTaskChanged: updateWindowsinfo(wModel.modePlay)
-        onDataChanged: updateWindowsinfo(wModel.modePlay)
+        onActiveTaskChanged: updateWindowsinfo(wModel.pauseMode)
+        onDataChanged: updateWindowsinfo(wModel.pauseMode)
         Component.onCompleted: {
             maximizedWindowModel.sourceModel = tasksModel
             fullScreenWindowModel.sourceModel = tasksModel
@@ -67,31 +66,31 @@ Item {
         id: onlyWindowsModel
         filterRole: TaskManager.AbstractTasksModel.IsWindow
         filterString: 'true'
-        onDataChanged: updateWindowsinfo(wModel.modePlay)
-        onCountChanged: updateWindowsinfo(wModel.modePlay)
+        onDataChanged: updateWindowsinfo(wModel.pauseMode)
+        onCountChanged: updateWindowsinfo(wModel.pauseMode)
     }
 
     KItemModels.KSortFilterProxyModel {
         id: maximizedWindowModel
         filterRole: TaskManager.AbstractTasksModel.IsMaximized
         filterString: 'true'
-        onDataChanged: updateWindowsinfo(wModel.modePlay)
-        onCountChanged: updateWindowsinfo(wModel.modePlay)
+        onDataChanged: updateWindowsinfo(wModel.pauseMode)
+        onCountChanged: updateWindowsinfo(wModel.pauseMode)
     }
     KItemModels.KSortFilterProxyModel {
         id: fullScreenWindowModel
         filterRole: TaskManager.AbstractTasksModel.IsFullScreen
         filterString: 'true'
-        onDataChanged: updateWindowsinfo(wModel.modePlay)
-        onCountChanged: updateWindowsinfo(wModel.modePlay)
+        onDataChanged: updateWindowsinfo(wModel.pauseMode)
+        onCountChanged: updateWindowsinfo(wModel.pauseMode)
     }
 
     KItemModels.KSortFilterProxyModel {
         id: minimizedWindowModel
         filterRole: TaskManager.AbstractTasksModel.IsMinimized
         filterString: 'true'
-        onDataChanged: updateWindowsinfo(wModel.modePlay)
-        onCountChanged: updateWindowsinfo(wModel.modePlay)
+        onDataChanged: updateWindowsinfo(wModel.pauseMode)
+        onCountChanged: updateWindowsinfo(wModel.pauseMode)
     }
 
 
@@ -102,68 +101,67 @@ Item {
         }
     }
 
-    function updateWindowsinfo(modePlay) {
-
-        // dumpProps(fullScreenWindowModel)
+    function updateWindowsinfo(pauseMode) {
         var abstractTasksModel = TaskManager.AbstractTasksModel
         var IsMaximized = abstractTasksModel.IsMaximized
         var IsFullScreen = abstractTasksModel.IsFullScreen
         var IsActive = abstractTasksModel.IsActive
         var AppPid = abstractTasksModel.AppPid
 
-        if(modePlay){
-            playVideoWallpaper = (onlyWindowsModel.count === minimizedWindowModel.count) ? true : false
-        }
-        else{
-            var joinApps  = [];
-            var minApps  = [];
-            var aObj;
-            var i;
-            var j;
-            // add fullscreen apps
-            for (i = 0 ; i < fullScreenWindowModel.count ; i++){
-                let pid = fullScreenWindowModel.data(fullScreenWindowModel.index(i, 0), AppPid);
-                joinApps.push(pid)
-            }
-            // add maximized apps
-            for (i = 0 ; i < maximizedWindowModel.count ; i++){
-                let pid = maximizedWindowModel.data(maximizedWindowModel.index(i, 0), AppPid);
-                joinApps.push(pid)                
-            }
-
-            // add minimized apps
-            for (i = 0 ; i < minimizedWindowModel.count ; i++){
-                let pid = minimizedWindowModel.data(minimizedWindowModel.index(i, 0), AppPid);
-                minApps.push(pid)
-            }
-
-            joinApps = removeDuplicates(joinApps) // for qml Kubuntu 18.04
-            joinApps.sort();
-            minApps.sort();
-
-            var twoStates = 0
-            j = 0;
-            for(i = 0 ; i < minApps.length ; i++){
-                if(minApps[i] === joinApps[j]){
-                    twoStates = twoStates + 1;
-                    j = j + 1;
+        switch(pauseMode) {
+            case 0:
+                // maximized/fullscreen
+                var joinApps  = [];
+                var minApps  = [];
+                var aObj;
+                var i;
+                var j;
+                // add fullscreen apps
+                for (i = 0 ; i < fullScreenWindowModel.count ; i++){
+                    let pid = fullScreenWindowModel.data(fullScreenWindowModel.index(i, 0), AppPid);
+                    joinApps.push(pid)
                 }
-            }
-            playVideoWallpaper = (fullScreenWindowModel.count + maximizedWindowModel.count - twoStates) == 0 ? true : false
+                // add maximized apps
+                for (i = 0 ; i < maximizedWindowModel.count ; i++){
+                    let pid = maximizedWindowModel.data(maximizedWindowModel.index(i, 0), AppPid);
+                    joinApps.push(pid)                
+                }
+
+                // add minimized apps
+                for (i = 0 ; i < minimizedWindowModel.count ; i++){
+                    let pid = minimizedWindowModel.data(minimizedWindowModel.index(i, 0), AppPid);
+                    minApps.push(pid)
+                }
+
+                joinApps = removeDuplicates(joinApps) // for qml Kubuntu 18.04
+                joinApps.sort();
+                minApps.sort();
+
+                var twoStates = 0
+                j = 0;
+                for(i = 0 ; i < minApps.length ; i++){
+                    if(minApps[i] === joinApps[j]){
+                        twoStates = twoStates + 1;
+                        j = j + 1;
+                    }
+                }
+                playVideoWallpaper = (fullScreenWindowModel.count + maximizedWindowModel.count - twoStates) == 0 ? true : false
+                break
+            case 1:
+                // at least one window is shown (busy)
+                playVideoWallpaper = (onlyWindowsModel.count === minimizedWindowModel.count) ? true : false
+                break
+            case 2:
+                // never pause
+                playVideoWallpaper = true;
+                break
         }
-
-        if(overridePauseEnabled){
-            playVideoWallpaper = true;
-            return;
-        }
-
-
     }
     
     function removeDuplicates(arrArg){
         return arrArg.filter(function(elem, pos,arr) {
-                        return arr.indexOf(elem) == pos;
-                });
+            return arr.indexOf(elem) == pos;
+        });
     }
 }
 
