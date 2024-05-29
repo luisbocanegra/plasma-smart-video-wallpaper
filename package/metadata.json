@@ -18,7 +18,7 @@
         "Icon": "preferences-desktop-wallpaper",
         "Id": "luisbocanegra.smart.video.wallpaper.reborn",
         "License": "GPLv2+",
-        "Version": "0.2.0",
+        "Version": "0.2.1",
         "Name": "Smart Video Wallpaper Reborn",
         "Website": "https://github.com/luisbocanegra/plasma-smart-video-wallpaper-reborn",
         "BugReportUrl": "https://github.com/luisbocanegra/plasma-smart-video-wallpaper-reborn/issues"

@@ -29,7 +29,7 @@ WallpaperItem {
     id: main
     property bool isLoading: true
     property string videoUrls: wallpaper.configuration.VideoUrls
-    property var videosList: []
+    property var videos: []
     property int currentVideoIndex: 0
     property int pauseBatteryLevel: wallpaper.configuration.PauseBatteryLevel
     property bool playing: windowModel.playVideoWallpaper && !batteryPausesVideo && !screenLocked && !screenIsOff
@@ -46,7 +46,7 @@ WallpaperItem {
         playing && !isLoading ? main.play() : main.pause()
     }
     onVideoUrlsChanged: {
-        videosList = videoUrls.trim().split("\n")
+        videos = videoUrls.trim().split("\n")
         currentVideoIndex = 0
         if (isLoading) return
         // console.error(videoUrls);
@@ -92,22 +92,37 @@ WallpaperItem {
         anchors.fill: parent
         color: wallpaper.configuration.BackgroundColor
 
-        Video {
-            id: player
-            source: videosList[currentVideoIndex]
-            loops: MediaPlayer.Infinite
-            fillMode: wallpaper.configuration.FillMode
+        VideoOutput {
+            id: videoOutput
+            fillMode: VideoOutput.PreserveAspectCrop
             anchors.fill: parent
-            volume: wallpaper.configuration.MuteAudio ? 0.0 : 1
-            onPositionChanged: {
-                // console.log("pos:", position, "dur:", duration);
-                if (position == duration) {
-                    // console.error("Video ended:",source);
-                    currentVideoIndex = (currentVideoIndex + 1) % videosList.length
-                    source = videosList[currentVideoIndex]
+        }
+
+        AudioOutput {
+            id: audioOutput
+            muted: wallpaper.configuration.MuteAudio
+        }
+
+        MediaPlayer {
+            id: player
+            source: videos[currentVideoIndex]
+            videoOutput: videoOutput
+            audioOutput: audioOutput
+            loops: (videos.length > 1) ? 1 : MediaPlayer.Infinite
+            // onPositionChanged: (position) => {
+            //     if (position == duration) {
+            onMediaStatusChanged: (status) => {
+                if (status == MediaPlayer.EndOfMedia) {
+                    console.log("video ended");
+                    currentVideoIndex = (currentVideoIndex + 1) % videos.length
                     // console.error("Video next:",source);
                     play()
                 }
+            }
+
+            onSourceChanged: {
+                // play()
+                console.log("current video source", source);
             }
         }
     }
@@ -159,7 +174,7 @@ WallpaperItem {
     }
 
     Component.onCompleted: {
-        videosList = videoUrls.trim().split("\n")
+        videos = videoUrls.trim().split("\n")
         startTimer.start()
     }
 }
